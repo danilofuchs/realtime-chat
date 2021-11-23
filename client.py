@@ -6,17 +6,18 @@ class Client:
         self.server_ip = server_ip
         self.server_port = server_port
         self.name = name
+        self.server = None
 
     def start(self):
-        self.connect_with_server()
+        self.connect_to_server()
 
         self.list_commands()
         while self.parse_input():
             pass
 
-    def connect_with_server(self):
+    def connect_to_server(self):
         print(
-            f'Connecting client with server at {self.server_ip}:{self.server_port}')
+            f'Connecting client to server at {self.server_ip}:{self.server_port}')
         # TODO: Connect with server with a Socket
 
     def parse_input(self):
@@ -39,8 +40,9 @@ class Client:
         return True
 
     def list_contacts(self):
+        clients = self.list_clients()
         # Pedir lista de clientes para o servidor
-        print('Listando clientes')
+        print(f'Contatos: {clients}')
         return True
 
     def send(self):
@@ -58,17 +60,21 @@ class Client:
         print('Enviando mensagem de grupo para {}: "{}"'.format(targets, message))
         # Enviar uma mensagem por socket para o servidor
         return True
-# ID
-# Nome
-# Lista de clientes
-#   - ID
-#   - IP
-#   - Porta
-#   - Nome
-#   - Disponível
-# IP do servidor
-# Porta do servidor
-# Socket com o servidor
+
+    def list_clients(self):
+        # Usar socket com servidor para listar todos os clients
+        return []
+
+    def send_message_to_client(self, name):
+        # Listar todos os clients
+        clients = self.list_clients()
+        # Encontrar client correto pelo name
+        # Conectar por socket e enviar mensagem para o cliente
+        pass
+
+    def send_message_to_group(self, names):
+        # Usar socket com servidor para enviar mensagem para os clients
+        pass
 
 
 if __name__ == "__main__":
