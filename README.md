@@ -1,7 +1,19 @@
 # Realtime chat
 
+Very simple multiple-client chat application in Python.
+
+## Running
+
+- Start a server:
+
 ```bash
-python client.py --ip 10.1.1.1 --port 4000 --name danilo
+python server.py
+```
+
+- Start a client:
+
+```bash
+python client.py --server-ip 10.1.1.1 --server-port 4000 --name bob
 ```
 
 ## Objetivos
