@@ -1,4 +1,5 @@
 import argparse
+import socket
 
 
 class Client:
@@ -16,6 +17,10 @@ class Client:
             pass
 
     def connect_to_server(self):
+        #Trabalhando com IPV4
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #s.bind = ((str(self.server_ip), int(self.server_port)))
+        #s.listen()
         print(
             f'Connecting client to server at {self.server_ip}:{self.server_port}')
         # TODO: Connect with server with a Socket
