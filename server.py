@@ -12,7 +12,7 @@ MAX_CLIENTS = 5
 
 
 class Server:
-    connected_clients = list()
+    connected_clients = dict()
 
     def start(self, host, port):
         print(f'Starting Server at {host}:{port}')
@@ -40,10 +40,12 @@ class Server:
         sock = key.fileobj
         conn, addr = sock.accept()
         conn.setblocking(False)
+
         print('accepted connection from', addr)
         host, port = addr
         name = conn.recv(1024).decode('utf-8')
-        self.connected_clients.append((host, port, name))
+
+        self.connected_clients[name] = {'host': host, 'port': port}
 
         data = types.SimpleNamespace(addr=addr, in_bytes=b'', out_bytes=b'')
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
