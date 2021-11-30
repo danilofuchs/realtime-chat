@@ -13,7 +13,7 @@ python server.py
 - Start a client:
 
 ```bash
-python client.py --server-ip 10.1.1.1 --server-port 4000 --name bob
+python client.py --server-ip 127.0.0.1 --server-port 5000 --name bob
 ```
 
 ## Objetivos
