@@ -1,9 +1,6 @@
 import argparse
 import socket
 
-# Trabalhando com IPV4
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
 
 class Client:
     def __init__(self, server_ip, server_port, name):
@@ -21,13 +18,14 @@ class Client:
 
     def connect_to_server(self):
         addr = (self.server_ip, self.server_port)
-        s.connect(addr)
         print(
             f'Connecting client to server at {self.server_ip}:{self.server_port}')
-        clients_list = s.recv(1024)
-        if clients_list:
-            print(
-                f'Connected clients : {clients_list}')
+        self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_sock.connect(addr)
+        # clients_list = s.recv(1024)
+        # if clients_list:
+        #     print(
+        #         f'Connected clients : {clients_list}')
         # TODO: Connect with server with a Socket
 
     def parse_input(self):
@@ -43,7 +41,7 @@ class Client:
         return self.list_commands()
 
     def exit(self):
-        s.close()
+        self.server_sock.close()
         return False
 
     def list_commands(self):
@@ -73,6 +71,10 @@ class Client:
         return True
 
     def list_clients(self):
+        self.server_sock.send(b'list')
+        bytes = self.server_sock.recv(1024)
+        print(bytes)
+
         # Usar socket com servidor para listar todos os clients
         return []
 
