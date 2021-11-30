@@ -2,6 +2,8 @@
 import socket
 import selectors
 import types
+import json
+
 sel = selectors.DefaultSelector()
 
 HOST = socket.gethostbyname(socket.gethostname())
@@ -30,34 +32,50 @@ class Server:
             events = sel.select(timeout=None)
             for key, mask in events:
                 if key.data is None:
-                    self.accept_wrapper(key.fileobj)
+                    self.accept_connection(key)
                 else:
                     self.service_connection(key, mask)
 
-    def accept_wrapper(self, sock):
-        conn, addr = sock.accept()  # Should be ready to read
-        print('accepted connection from', addr)
+    def accept_connection(self, key):
+        sock = key.fileobj
+        conn, addr = sock.accept()
         conn.setblocking(False)
-        data = types.SimpleNamespace(addr=addr, inb=b'', outb=b'')
+        print('accepted connection from', addr)
+        host, port = addr
+        name = conn.recv(1024).decode('utf-8')
+        self.connected_clients.append((host, port, name))
+
+        data = types.SimpleNamespace(addr=addr, in_bytes=b'', out_bytes=b'')
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
         sel.register(conn, events, data=data)
 
     def service_connection(self, key, mask):
+        if mask & selectors.EVENT_READ:
+            self.read_message(key)
+        if mask & selectors.EVENT_WRITE:
+            self.write_message(key)
+
+    def read_message(self, key):
         sock = key.fileobj
         data = key.data
-        if mask & selectors.EVENT_READ:
-            recv_data = sock.recv(1024)  # Should be ready to read
-            if recv_data:
-                data.outb += recv_data
-            else:
-                print('closing connection to', data.addr)
-                sel.unregister(sock)
-                sock.close()
-        if mask & selectors.EVENT_WRITE:
-            if data.outb:
-                print('echoing', repr(data.outb), 'to', data.addr)
-                sent = sock.send(data.outb)  # Should be ready to write
-                data.outb = data.outb[sent:]
+        recv_data = sock.recv(1024)
+        if recv_data:
+            # Deal with message
+            if (recv_data.decode('utf-8') == 'list'):
+                data.out_bytes = json.dumps(
+                    self.connected_clients).encode('utf-8')
+        else:
+            print('closing connection to', data.addr)
+            sel.unregister(sock)
+            sock.close()
+
+    def write_message(self, key):
+        sock = key.fileobj
+        data = key.data
+        if data.out_bytes:
+            print('echoing', repr(data.out_bytes), 'to', data.addr)
+            sent = sock.send(data.out_bytes)  # Should be ready to write
+            data.out_bytes = data.out_bytes[sent:]
 
     def exit(self):
         self.sock.close()

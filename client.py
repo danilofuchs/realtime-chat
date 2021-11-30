@@ -1,4 +1,5 @@
 import argparse
+import json
 import socket
 
 
@@ -22,11 +23,7 @@ class Client:
             f'Connecting client to server at {self.server_ip}:{self.server_port}')
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.connect(addr)
-        # clients_list = s.recv(1024)
-        # if clients_list:
-        #     print(
-        #         f'Connected clients : {clients_list}')
-        # TODO: Connect with server with a Socket
+        self.server_sock.sendall(self.name.encode('utf-8'))
 
     def parse_input(self):
         command = input('Esperando comandos: ')
@@ -72,11 +69,10 @@ class Client:
 
     def list_clients(self):
         self.server_sock.send(b'list')
-        bytes = self.server_sock.recv(1024)
-        print(bytes)
-
-        # Usar socket com servidor para listar todos os clients
-        return []
+        as_bytes = self.server_sock.recv(1024)
+        as_string = as_bytes.decode('utf-8')
+        as_json = json.loads(as_string)
+        return as_json
 
     def send_message_to_client(self, name):
         # Listar todos os clients
@@ -90,11 +86,20 @@ class Client:
         pass
 
 
+def name_arg(value):
+    if not value:
+        raise argparse.ArgumentTypeError('Nome não pode ser vazio')
+    if (len(value) > 30):
+        raise argparse.ArgumentTypeError(
+            'Nome muito grande (max 30 caracteres)')
+    return value
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--server-ip', type=str)
     parser.add_argument('--server-port', type=int)
-    parser.add_argument('--name', type=str)
+    parser.add_argument('--name', type=name_arg)
 
     args = parser.parse_args()
 
