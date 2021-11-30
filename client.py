@@ -20,9 +20,13 @@ class Client:
 
     def connect_to_server(self):
         addr = (self.server_ip,self.server_port)
-        #s.connect(addr)
+        s.connect(addr)
         print(
             f'Connecting client to server at {self.server_ip}:{self.server_port}')
+        clients_list = s.recv(1024)
+        if clients_list:
+            print(
+                f'Connected clients : {clients_list}')
         # TODO: Connect with server with a Socket
 
     def parse_input(self):
@@ -86,7 +90,7 @@ class Client:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--server-ip', type=str)
-    parser.add_argument('--server-port', type=str)
+    parser.add_argument('--server-port', type=int)
     parser.add_argument('--name', type=str)
 
     args = parser.parse_args()
