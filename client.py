@@ -1,9 +1,16 @@
 import argparse
 import json
 import socket
+import types
+import selectors
 
+MAX_CLIENTS = 5
+
+sel = selectors.DefaultSelector()
 
 class Client:
+    clients = dict()
+
     def __init__(self, server_ip, server_port, name):
         self.server_ip = server_ip
         self.server_port = server_port
@@ -24,6 +31,65 @@ class Client:
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.connect(addr)
         self.server_sock.sendall(self.name.encode('utf-8'))
+
+    def connect_to_client(self, m_host, m_port):
+        addr = (m_host, m_port)
+        print(
+            f'Connecting client to client at {m_host}:{m_port}')
+        self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client_sock.connect(addr)
+
+    def client_listen(self):
+        # while True:
+        print('Waiting connection...')
+        self.client_sock.listen(MAX_CLIENTS)
+        self.client_sock.setblocking(False)
+        sel.register(self.client_sock, selectors.EVENT_READ, data=None)
+
+        while True:
+            events = sel.select(timeout=None)
+            for key, mask in events:
+                if key.data is None:
+                    self.accept_connection(key)
+                else:
+                    self.service_connection(key, mask)
+
+    def accept_connection(self, key):
+        sock = key.fileobj
+        conn, addr = sock.accept()
+        conn.setblocking(False)
+
+        print('accepted connection from', addr)
+
+        data = types.SimpleNamespace(addr=addr, in_bytes=b'', out_bytes=b'')
+        events = selectors.EVENT_READ | selectors.EVENT_WRITE
+        sel.register(conn, events, data=data)
+
+    def service_connection(self, key, mask):
+        if mask & selectors.EVENT_READ:
+            self.read_message(key)
+        if mask & selectors.EVENT_WRITE:
+            self.write_message(key)
+
+    def read_message(self, key):
+        sock = key.fileobj
+        data = key.data
+        recv_data = sock.recv(1024)
+        if recv_data:
+            # Deal with message
+            recv_data = recv_data.decode('utf-8') 
+            print('msg recebida: ', recv_data)
+        else:
+            print('closing connection to', data.addr)
+            sel.unregister(sock)
+            sock.close()
+
+    def write_message(self, key):
+        sock = key.fileobj
+        data = key.data
+        if data.out_bytes:
+            sent = sock.send(data.out_bytes)  # Should be ready to write
+            data.out_bytes = data.out_bytes[sent:]
 
     def parse_input(self):
         command = input('Esperando comandos: ')
@@ -46,15 +112,37 @@ class Client:
         return True
 
     def list_contacts(self):
-        clients = self.list_clients()
+        self.clients = self.list_clients()
         # Pedir lista de clientes para o servidor
-        print(f'Contatos: {clients}')
+        print(f'Contatos: {self.clients}')
         return True
+
+    def mapeia(self, m_clients, m_name):
+            print('mapeando')
+            if m_clients[m_name]:
+                print('usuario encontrado')
+                return [m_clients.host, m_clients.port]
+            else:
+                return -1
 
     def send(self):
         target = input('Para quem: ')
-        message = input('Digite uma mensagem: ')
-        print('Enviando mensagem para {}: "{}"...'.format(target, message))
+
+        if target:
+            ret = self.mapeia(self.clients, target)
+            if ret != -1:
+                print('Conectando ao usuario')
+                self.connect_to_client(ret.host, ret.port)
+
+                message = input('Digite uma mensagem: ')
+                #data.out_bytes = bytearray(message, 'utf-8')
+                print('Enviando mensagem para {}: "{}"...'.format(target, message))
+
+            else:
+                print('Usuario não conectado')
+        else:
+            print('Invalido')
+        
         # Pedir lista de clientes para o servidor
         # Enviar uma mensagem por socket para o cliente
         return True
