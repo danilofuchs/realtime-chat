@@ -3,14 +3,23 @@ import json
 import socket
 import types
 import selectors
+import sys
+import threading
+import queue
 
 MAX_CLIENTS = 5
 
 sel = selectors.DefaultSelector()
 
 
+def add_input(input_queue):
+    while True:
+        input_queue.put(sys.stdin.read(1))
+
+
 class Client:
     clients = dict()
+    input_queue = queue.Queue()
 
     def __init__(self, server_ip, server_port, name):
         self.server_ip = server_ip
@@ -22,8 +31,20 @@ class Client:
         self.connect_to_server()
 
         self.list_commands()
-        while self.parse_input():
-            pass
+
+        input_thread = threading.Thread(
+            target=add_input, args=(self.input_queue,))
+        input_thread.daemon = True
+        input_thread.start()
+
+        while True:
+            command = ''
+            while not self.input_queue.empty():
+                char = self.input_queue.get()
+                if char == '\n':
+                    break
+                command += char
+            self.parse_input(command)
 
     def connect_to_server(self):
         addr = (self.server_ip, self.server_port)
@@ -92,14 +113,21 @@ class Client:
             sent = sock.send(data.out_bytes)  # Should be ready to write
             data.out_bytes = data.out_bytes[sent:]
 
-    def parse_input(self):
-        command = input('Esperando comandos: ')
+    def parse_input(self, command):
         if command == 'exit':
             return self.exit()
         elif command == 'list':
             return self.list_contacts()
-        elif command == 'send':
-            return self.send()
+        elif command.startswith('send'):
+            # send <name> <message>
+            command_args = command.split(' ')
+            if len(command_args) < 3:
+                print('Comando inválido. Use: send <name> <message>')
+                return True
+            name = command_args[1]
+            message = ' '.join(command_args[2:])
+
+            return self.send(name, message)
         elif command == 'gsend':
             return self.group_send()
         return self.list_commands()
@@ -118,15 +146,13 @@ class Client:
         print(f'Contatos: {clients}')
         return True
 
-    def send(self):
-        target = input('Para quem: ')
-
-        if not target:
+    def send(self, name, message):
+        if not name:
             print('Nome inválido')
             return True
 
         clients = self.list_clients()
-        address = self.get_client_address_by_name(clients, target)
+        address = self.get_client_address_by_name(clients, name)
         if address is None:
             print('Usuario não conectado')
             return True
@@ -134,7 +160,6 @@ class Client:
         host, port = address
         print('Conectando ao usuario')
         self.connect_to_client(host, port)
-        message = input('Digite uma mensagem: ')
         print('Enviando mensagem: "{}"...'.format(message))
 
         # Pedir lista de clientes para o servidor
