@@ -68,8 +68,18 @@ class Server:
                     self.connected_clients).encode('utf-8')
         else:
             print('closing connection to', data.addr)
+
+            self.remove_client_from_list(data.addr)
+
             sel.unregister(sock)
             sock.close()
+
+    def remove_client_from_list(self, address):
+        host, port = address
+
+        for name, addr in list(self.connected_clients.items()):
+            if addr['host'] == host and addr['port'] == port:
+                del self.connected_clients[name]
 
     def write_message(self, key):
         sock = key.fileobj
