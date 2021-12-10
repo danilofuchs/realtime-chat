@@ -8,6 +8,7 @@ MAX_CLIENTS = 5
 
 sel = selectors.DefaultSelector()
 
+
 class Client:
     clients = dict()
 
@@ -77,7 +78,7 @@ class Client:
         recv_data = sock.recv(1024)
         if recv_data:
             # Deal with message
-            recv_data = recv_data.decode('utf-8') 
+            recv_data = recv_data.decode('utf-8')
             print('msg recebida: ', recv_data)
         else:
             print('closing connection to', data.addr)
@@ -112,37 +113,30 @@ class Client:
         return True
 
     def list_contacts(self):
-        self.clients = self.list_clients()
+        clients = self.list_clients()
         # Pedir lista de clientes para o servidor
-        print(f'Contatos: {self.clients}')
+        print(f'Contatos: {clients}')
         return True
-
-    def mapeia(self, m_clients, m_name):
-            print('mapeando')
-            if m_clients[m_name]:
-                print('usuario encontrado')
-                return [m_clients.host, m_clients.port]
-            else:
-                return -1
 
     def send(self):
         target = input('Para quem: ')
 
-        if target:
-            ret = self.mapeia(self.clients, target)
-            if ret != -1:
-                print('Conectando ao usuario')
-                self.connect_to_client(ret.host, ret.port)
+        if not target:
+            print('Nome inválido')
+            return True
 
-                message = input('Digite uma mensagem: ')
-                #data.out_bytes = bytearray(message, 'utf-8')
-                print('Enviando mensagem para {}: "{}"...'.format(target, message))
+        clients = self.list_clients()
+        address = self.get_client_address_by_name(clients, target)
+        if address is None:
+            print('Usuario não conectado')
+            return True
 
-            else:
-                print('Usuario não conectado')
-        else:
-            print('Invalido')
-        
+        host, port = address
+        print('Conectando ao usuario')
+        self.connect_to_client(host, port)
+        message = input('Digite uma mensagem: ')
+        print('Enviando mensagem: "{}"...'.format(message))
+
         # Pedir lista de clientes para o servidor
         # Enviar uma mensagem por socket para o cliente
         return True
@@ -162,12 +156,13 @@ class Client:
         as_json = json.loads(as_string)
         return as_json
 
-    def send_message_to_client(self, name):
-        # Listar todos os clients
-        clients = self.list_clients()
-        # Encontrar client correto pelo name
-        # Conectar por socket e enviar mensagem para o cliente
-        pass
+    def get_client_address_by_name(self, clients, name):
+        if name in clients:
+            client = clients[name]
+            print('usuario encontrado {}'.format(client))
+            return (client['host'], client['port'])
+        else:
+            return None
 
     def send_message_to_group(self, names):
         # Usar socket com servidor para enviar mensagem para os clients
