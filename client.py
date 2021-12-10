@@ -7,9 +7,10 @@ import sys
 import threading
 import queue
 
-MAX_CLIENTS = 5
-
 sel = selectors.DefaultSelector()
+
+HOST = socket.gethostbyname(socket.gethostname())
+MAX_CLIENTS = 5
 
 
 def add_input(input_queue):
@@ -21,30 +22,48 @@ class Client:
     clients = dict()
     input_queue = queue.Queue()
 
-    def __init__(self, server_ip, server_port, name):
+    def __init__(self, host, port, server_ip, server_port, name):
         self.server_ip = server_ip
         self.server_port = server_port
         self.name = name
         self.server = None
+
+        self.host = host
+        self.port = port
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.bind((host, port))
 
     def start(self):
         self.connect_to_server()
 
         self.list_commands()
 
+        self.client_listen()
+
+        self.init_input_thread()
+
+        while True:
+            if not self.input_queue.empty():
+                command = ''
+                while not self.input_queue.empty():
+                    char = self.input_queue.get()
+                    if char == '\n':
+                        break
+                    command += char
+                self.parse_input(command)
+            events = sel.select(timeout=-1)
+            for key, mask in events:
+                if key.data is None:
+                    self.accept_connection(key)
+                else:
+                    self.service_connection(key, mask)
+
+    def init_input_thread(self):
         input_thread = threading.Thread(
             target=add_input, args=(self.input_queue,))
         input_thread.daemon = True
         input_thread.start()
-
-        while True:
-            command = ''
-            while not self.input_queue.empty():
-                char = self.input_queue.get()
-                if char == '\n':
-                    break
-                command += char
-            self.parse_input(command)
 
     def connect_to_server(self):
         addr = (self.server_ip, self.server_port)
@@ -52,29 +71,14 @@ class Client:
             f'Connecting client to server at {self.server_ip}:{self.server_port}')
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.connect(addr)
-        self.server_sock.sendall(self.name.encode('utf-8'))
-
-    def connect_to_client(self, m_host, m_port):
-        addr = (m_host, m_port)
-        print(
-            f'Connecting client to client at {m_host}:{m_port}')
-        self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client_sock.connect(addr)
+        body = {'name': self.name, 'host': self.host, 'port': self.port}
+        self.server_sock.sendall(json.dumps(body).encode('utf-8'))
 
     def client_listen(self):
-        # while True:
         print('Waiting connection...')
-        self.client_sock.listen(MAX_CLIENTS)
-        self.client_sock.setblocking(False)
-        sel.register(self.client_sock, selectors.EVENT_READ, data=None)
-
-        while True:
-            events = sel.select(timeout=None)
-            for key, mask in events:
-                if key.data is None:
-                    self.accept_connection(key)
-                else:
-                    self.service_connection(key, mask)
+        self.sock.listen(MAX_CLIENTS)
+        self.sock.setblocking(False)
+        sel.register(self.sock, selectors.EVENT_READ, data=None)
 
     def accept_connection(self, key):
         sock = key.fileobj
@@ -166,6 +170,13 @@ class Client:
         # Enviar uma mensagem por socket para o cliente
         return True
 
+    def connect_to_client(self, m_host, m_port):
+        addr = (m_host, m_port)
+        print(
+            f'Connecting client to client at {m_host}:{m_port}')
+        remote_client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        remote_client_sock.connect(addr)
+
     def group_send(self):
         targets_str = input('Nomes dos destinatários: ')
         targets = targets_str.split(' ')
@@ -205,11 +216,13 @@ def name_arg(value):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('--port', type=int)
     parser.add_argument('--server-ip', type=str)
     parser.add_argument('--server-port', type=int)
     parser.add_argument('--name', type=name_arg)
 
     args = parser.parse_args()
 
-    client = Client(args.server_ip, args.server_port, args.name)
+    client = Client(HOST, args.port, args.server_ip,
+                    args.server_port, args.name)
     client.start()

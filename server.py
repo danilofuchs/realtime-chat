@@ -43,9 +43,12 @@ class Server:
 
         print('accepted connection from', addr)
         host, port = addr
-        name = conn.recv(1024).decode('utf-8')
+        body = json.loads(conn.recv(1024).decode('utf-8'))
 
-        self.connected_clients[name] = {'host': host, 'port': port}
+        self.connected_clients[body['name']] = {
+            'host': body['host'],
+            'port': body['port'],
+        }
 
         data = types.SimpleNamespace(addr=addr, in_bytes=b'', out_bytes=b'')
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
