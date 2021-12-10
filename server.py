@@ -96,7 +96,6 @@ class Server:
         sock = key.fileobj
         data = key.data
         if data.out_bytes:
-            print('echoing', repr(data.out_bytes), 'to', data.addr)
             sent = sock.send(data.out_bytes)  # Should be ready to write
             data.out_bytes = data.out_bytes[sent:]
 

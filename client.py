@@ -72,7 +72,7 @@ class Client:
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.connect(addr)
         body = {'name': self.name, 'host': self.host, 'port': self.port}
-        self.server_sock.sendall(json.dumps(body).encode('utf-8'))
+        self.send_using_socket(self.server_sock, json.dumps(body))
 
     def client_listen(self):
         self.sock.listen(MAX_CLIENTS)
@@ -83,8 +83,6 @@ class Client:
         sock = key.fileobj
         conn, addr = sock.accept()
         conn.setblocking(False)
-
-        print('accepted connection from', addr)
 
         data = types.SimpleNamespace(addr=addr, in_bytes=b'', out_bytes=b'')
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
@@ -98,14 +96,14 @@ class Client:
 
     def read_message(self, key):
         sock = key.fileobj
-        data = key.data
         recv_data = sock.recv(1024)
         if recv_data:
             # Deal with message
             recv_data = recv_data.decode('utf-8')
-            print('msg recebida: ', recv_data)
+            body = json.loads(recv_data)
+
+            print(f'{body["name"]} said: {body["message"]}')
         else:
-            print('closing connection to', data.addr)
             sel.unregister(sock)
             sock.close()
 
@@ -145,8 +143,10 @@ class Client:
 
     def list_contacts(self):
         clients = self.list_clients()
-        # Pedir lista de clientes para o servidor
-        print(f'Contatos: {clients}')
+        list_of_clients = list(clients.keys())
+        list_of_clients.remove(self.name)
+
+        print(f'Contatos: {", ".join(list_of_clients)}')
         return True
 
     def send(self, name, message):
@@ -160,21 +160,12 @@ class Client:
             print('Usuario não conectado')
             return True
 
-        host, port = address
-        print('Conectando ao usuario')
-        self.connect_to_client(host, port)
-        print('Enviando mensagem: "{}"...'.format(message))
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as remote_sock:
+            remote_sock.connect(address)
+            body = {'name': self.name, 'message': message}
+            self.send_using_socket(remote_sock, json.dumps(body))
 
-        # Pedir lista de clientes para o servidor
-        # Enviar uma mensagem por socket para o cliente
         return True
-
-    def connect_to_client(self, m_host, m_port):
-        addr = (m_host, m_port)
-        print(
-            f'Connecting client to client at {m_host}:{m_port}')
-        remote_client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        remote_client_sock.connect(addr)
 
     def group_send(self):
         targets_str = input('Nomes dos destinatários: ')
@@ -194,7 +185,6 @@ class Client:
     def get_client_address_by_name(self, clients, name):
         if name in clients:
             client = clients[name]
-            print('usuario encontrado {}'.format(client))
             return (client['host'], client['port'])
         else:
             return None
@@ -202,6 +192,9 @@ class Client:
     def send_message_to_group(self, names):
         # Usar socket com servidor para enviar mensagem para os clients
         pass
+
+    def send_using_socket(self, socket, message):
+        socket.send(message.encode('utf-8'))
 
 
 def name_arg(value):
