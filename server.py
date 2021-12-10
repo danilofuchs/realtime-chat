@@ -50,7 +50,12 @@ class Server:
             'port': body['port'],
         }
 
-        data = types.SimpleNamespace(addr=addr, in_bytes=b'', out_bytes=b'')
+        data = types.SimpleNamespace(
+            addr=addr,
+            name=body['name'],
+            in_bytes=b'',
+            out_bytes=b'',
+        )
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
         sel.register(conn, events, data=data)
 
@@ -63,26 +68,29 @@ class Server:
     def read_message(self, key):
         sock = key.fileobj
         data = key.data
-        recv_data = sock.recv(1024)
-        if recv_data:
-            # Deal with message
-            if (recv_data.decode('utf-8') == 'list'):
-                data.out_bytes = json.dumps(
-                    self.connected_clients).encode('utf-8')
-        else:
-            print('closing connection to', data.addr)
+        try:
+            recv_data = sock.recv(1024)
+            if recv_data:
+                # Deal with message
+                if (recv_data.decode('utf-8') == 'list'):
+                    data.out_bytes = json.dumps(
+                        self.connected_clients).encode('utf-8')
+            else:
+                self.disconnect_client(sock, data)
+        except ConnectionResetError:
+            self.disconnect_client(sock, data)
 
-            self.remove_client_from_list(data.addr)
+    def disconnect_client(self, sock, data):
+        print('closing connection to', data.addr)
 
-            sel.unregister(sock)
-            sock.close()
+        self.remove_client_from_list(data.name)
 
-    def remove_client_from_list(self, address):
-        host, port = address
+        sel.unregister(sock)
+        sock.close()
 
-        for name, addr in list(self.connected_clients.items()):
-            if addr['host'] == host and addr['port'] == port:
-                del self.connected_clients[name]
+    def remove_client_from_list(self, name):
+        if name in self.connected_clients:
+            del self.connected_clients[name]
 
     def write_message(self, key):
         sock = key.fileobj

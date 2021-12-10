@@ -75,7 +75,6 @@ class Client:
         self.server_sock.sendall(json.dumps(body).encode('utf-8'))
 
     def client_listen(self):
-        print('Waiting connection...')
         self.sock.listen(MAX_CLIENTS)
         self.sock.setblocking(False)
         sel.register(self.sock, selectors.EVENT_READ, data=None)
