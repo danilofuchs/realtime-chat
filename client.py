@@ -1,19 +1,27 @@
+# Argumentos de linha de comando
 import argparse
+
+# Comunicação por socket
 import json
 import socket
-import types
 import selectors
+import types
+
+# Input não bloqueante
 import sys
 import threading
 import queue
-from datetime import datetime
+
+# Tematizar terminal
 import colorama
 from colorama import Fore, Style
+from datetime import datetime
 
 colorama.init()
 
 sel = selectors.DefaultSelector()
 
+HOST = socket.gethostbyname(socket.gethostname())
 MAX_CLIENTS = 5
 
 
@@ -26,16 +34,16 @@ class Client:
     clients = dict()
     input_queue = queue.Queue()
 
-    def __init__(self, server_ip, server_port, name):
+    def __init__(self, host, server_ip, server_port, name):
         self.server_ip = server_ip
         self.server_port = server_port
         self.name = name
         self.server = None
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.bind(('', 0))
+        self.sock.bind((host, 0))
 
-        self.host = self.sock.getsockname()[0]
+        self.host = host
         self.port = self.sock.getsockname()[1]
 
     def start(self):
@@ -238,5 +246,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    client = Client(args.server_ip, args.server_port, args.name)
+    client = Client(HOST, args.server_ip, args.server_port, args.name)
     client.start()
