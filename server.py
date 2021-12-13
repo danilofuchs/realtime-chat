@@ -122,7 +122,8 @@ class Server:
             self.send_using_socket(remote_sock, json.dumps(body))
 
     def send_using_socket(self, socket, message):
-        socket.send(message.encode('utf-8'))
+        socket.sendall(message.encode('utf-8'))
+
 
 if __name__ == "__main__":
     server = Server()

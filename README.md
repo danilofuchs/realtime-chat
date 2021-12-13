@@ -2,6 +2,12 @@
 
 Very simple multiple-client chat application in Python.
 
+## Installing
+
+```
+pip install -r requirements.txt
+```
+
 ## Running
 
 - Start a server:

@@ -6,6 +6,11 @@ import selectors
 import sys
 import threading
 import queue
+from datetime import datetime
+import colorama
+from colorama import Fore, Style
+
+colorama.init()
 
 sel = selectors.DefaultSelector()
 
@@ -51,7 +56,9 @@ class Client:
                     if char == '\n':
                         break
                     command += char
-                self.parse_input(command)
+                should_continue = self.parse_input(command)
+                if not should_continue:
+                    break
             events = sel.select(timeout=-1)
             for key, mask in events:
                 if key.data is None:
@@ -67,8 +74,8 @@ class Client:
 
     def connect_to_server(self):
         addr = (self.server_ip, self.server_port)
-        print(
-            f'Connecting client to server at {self.server_ip}:{self.server_port}')
+        print(c(Fore.LIGHTBLACK_EX,
+              f'Connecting client to server at {self.server_ip}:{self.server_port}'))
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.connect(addr)
         body = {'name': self.name, 'host': self.host, 'port': self.port}
@@ -101,8 +108,12 @@ class Client:
             # Deal with message
             recv_data = recv_data.decode('utf-8')
             body = json.loads(recv_data)
+            timestamp = datetime.now().strftime('%Hh%Mm')
 
-            print(f'{body["name"]} said: {body["message"]}')
+            timestamp_f = c(Fore.GREEN, f'[{timestamp}]')
+            name_f = c(Fore.CYAN + Style.DIM, body["name"] + ":")
+
+            print(f'{timestamp_f} {name_f} {body["message"]}')
         else:
             sel.unregister(sock)
             sock.close()
@@ -135,7 +146,7 @@ class Client:
             if len(command_args) < 3:
                 print('Comando inválido. Use: gsend <name>,<name>,... <message>')
                 return True
-            names = command_args[1].split(',')
+            names = set(command_args[1].split(','))
             message = ' '.join(command_args[2:])
             return self.group_send(names, message)
         return self.list_commands()
@@ -145,7 +156,8 @@ class Client:
         return False
 
     def list_commands(self):
-        print('Comandos aceitos: exit, list, send, gsend')
+        print('Comandos aceitos: ' +
+              c(Fore.LIGHTMAGENTA_EX, 'list, send, gsend, exit'))
         return True
 
     def list_contacts(self):
@@ -153,18 +165,20 @@ class Client:
         list_of_clients = list(clients.keys())
         list_of_clients.remove(self.name)
 
-        print(f'Contatos: {", ".join(list_of_clients)}')
+        list_f = c(Fore.CYAN + Style.DIM, "\n\t".join(list_of_clients))
+
+        print(f'Contatos:\n\t{list_f}')
         return True
 
     def send(self, name, message):
         if not name:
-            print('Nome inválido')
+            print(error('Nome inválido'))
             return True
 
         clients = self.list_clients()
         address = self.get_client_address_by_name(clients, name)
         if address is None:
-            print('Usuario não conectado')
+            print(error(f'Usuario {name} não conectado'))
             return True
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as remote_sock:
@@ -176,7 +190,7 @@ class Client:
 
     def group_send(self, names, message):
         self.send_using_socket(self.server_sock, 'gsend:' + json.dumps({
-            'names': names,
+            'names': list(names),
             'message': message,
         }))
 
@@ -196,12 +210,16 @@ class Client:
         else:
             return None
 
-    def send_message_to_group(self, names):
-        # Usar socket com servidor para enviar mensagem para os clients
-        pass
-
     def send_using_socket(self, socket, message):
-        socket.send(message.encode('utf-8'))
+        socket.sendall(message.encode('utf-8'))
+
+
+def c(color, string):
+    return f'{color}{string}{colorama.Style.RESET_ALL}'
+
+
+def error(string):
+    print(c(Fore.RED + Style.BRIGHT, string))
 
 
 def name_arg(value):
