@@ -16,13 +16,11 @@ class Server:
 
     def start(self, host, port):
         print(f'Starting Server at {host}:{port}')
-        #s.connect = ((HOST, PORT))
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind((host, port))
         self.server_listen()
 
     def server_listen(self):
-        # while True:
         print('Waiting connection...')
         self.sock.listen(MAX_CLIENTS)
         self.sock.setblocking(False)
@@ -41,18 +39,19 @@ class Server:
         conn, addr = sock.accept()
         conn.setblocking(False)
 
-        print('accepted connection from', addr)
-        host, port = addr
         body = json.loads(conn.recv(1024).decode('utf-8'))
 
-        self.connected_clients[body['name']] = {
+        name = body['name']
+        print(f'accepted connection from {addr} {name}')
+
+        self.connected_clients[name] = {
             'host': body['host'],
             'port': body['port'],
         }
 
         data = types.SimpleNamespace(
             addr=addr,
-            name=body['name'],
+            name=name,
             in_bytes=b'',
             out_bytes=b'',
         )

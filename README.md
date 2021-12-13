@@ -19,13 +19,13 @@ python server.py
 - Start a client:
 
 ```bash
-python client.py --port 8000 --server-ip 127.0.0.1 --server-port 5000 --name bob
+python client.py --server-ip 127.0.0.1 --server-port 5000 --name bob
 ```
 
 - Start a 2nd client:
 
 ```bash
-python client.py --port 8001 --server-ip 127.0.0.1 --server-port 5000 --name ted
+python client.py --server-ip 127.0.0.1 --server-port 5000 --name ted
 ```
 
 ## Objetivos
@@ -38,6 +38,7 @@ python client.py --port 8001 --server-ip 127.0.0.1 --server-port 5000 --name ted
 ### Cliente
 
 - Input do IP e porta do servidor
+- Input da Porta do cliente
 - Cliente deve ter um nome
 - Conectar ao servidor com socket
 - Requisitar endereços de clientes do servidor e saber se estão disponíveis

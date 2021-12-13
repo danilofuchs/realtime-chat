@@ -14,7 +14,6 @@ colorama.init()
 
 sel = selectors.DefaultSelector()
 
-HOST = socket.gethostbyname(socket.gethostname())
 MAX_CLIENTS = 5
 
 
@@ -27,17 +26,17 @@ class Client:
     clients = dict()
     input_queue = queue.Queue()
 
-    def __init__(self, host, port, server_ip, server_port, name):
+    def __init__(self, server_ip, server_port, name):
         self.server_ip = server_ip
         self.server_port = server_port
         self.name = name
         self.server = None
 
-        self.host = host
-        self.port = port
-
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.bind((host, port))
+        self.sock.bind(('', 0))
+
+        self.host = self.sock.getsockname()[0]
+        self.port = self.sock.getsockname()[1]
 
     def start(self):
         self.connect_to_server()
@@ -233,13 +232,11 @@ def name_arg(value):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port', type=int)
     parser.add_argument('--server-ip', type=str)
     parser.add_argument('--server-port', type=int)
     parser.add_argument('--name', type=name_arg)
 
     args = parser.parse_args()
 
-    client = Client(HOST, args.port, args.server_ip,
-                    args.server_port, args.name)
+    client = Client(args.server_ip, args.server_port, args.name)
     client.start()
