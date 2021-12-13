@@ -71,10 +71,8 @@ class Server:
         try:
             recv_data = sock.recv(1024)
             if recv_data:
-                # Deal with message
-                if (recv_data.decode('utf-8') == 'list'):
-                    data.out_bytes = json.dumps(
-                        self.connected_clients).encode('utf-8')
+                data.out_bytes = json.dumps(self.route(
+                    recv_data.decode('utf-8'))).encode('utf-8')
             else:
                 self.disconnect_client(sock, data)
         except ConnectionResetError:
@@ -99,19 +97,32 @@ class Server:
             sent = sock.send(data.out_bytes)  # Should be ready to write
             data.out_bytes = data.out_bytes[sent:]
 
-    def exit(self):
-        self.sock.close()
-        return False
+    def route(self, command):
+        if command == 'list':
+            return self.connected_clients
+        if command.startswith('gsend:'):
+            body = json.loads(command.replace('gsend:', ''))
+            names = body['names']
+            message = body['message']
 
-# Lista de clientes
-#   - ID
-#   - IP
-#   - Porta
-#   - Nome
-#   - Disponível
-# IP do servidor
-# Porta do servidor
+            return self.send_to_group(names, message)
+        return 'Unknown command'
 
+    def send_to_group(self, names, message):
+        for name in names:
+            if name in self.connected_clients:
+                self.send_message(name, message)
+
+    def send_message(self, name, message):
+        client = self.connected_clients[name]
+        address = (client['host'], client['port'])
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as remote_sock:
+            remote_sock.connect(address)
+            body = {'name': name, 'message': message}
+            self.send_using_socket(remote_sock, json.dumps(body))
+
+    def send_using_socket(self, socket, message):
+        socket.send(message.encode('utf-8'))
 
 if __name__ == "__main__":
     server = Server()

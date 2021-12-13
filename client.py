@@ -129,8 +129,15 @@ class Client:
             message = ' '.join(command_args[2:])
 
             return self.send(name, message)
-        elif command == 'gsend':
-            return self.group_send()
+        elif command.startswith('gsend'):
+            # gsend <name>,<name>,... <message>
+            command_args = command.split(' ')
+            if len(command_args) < 3:
+                print('Comando inválido. Use: gsend <name>,<name>,... <message>')
+                return True
+            names = command_args[1].split(',')
+            message = ' '.join(command_args[2:])
+            return self.group_send(names, message)
         return self.list_commands()
 
     def exit(self):
@@ -167,12 +174,12 @@ class Client:
 
         return True
 
-    def group_send(self):
-        targets_str = input('Nomes dos destinatários: ')
-        targets = targets_str.split(' ')
-        message = input('Digite uma mensagem: ')
-        print('Enviando mensagem de grupo para {}: "{}"'.format(targets, message))
-        # Enviar uma mensagem por socket para o servidor
+    def group_send(self, names, message):
+        self.send_using_socket(self.server_sock, 'gsend:' + json.dumps({
+            'names': names,
+            'message': message,
+        }))
+
         return True
 
     def list_clients(self):
