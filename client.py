@@ -1,5 +1,6 @@
 # Argumentos de linha de comando
 import argparse
+import re
 
 # Comunicação por socket
 import json
@@ -232,6 +233,8 @@ def error(string):
 def name_arg(value):
     if not value:
         raise argparse.ArgumentTypeError('Nome não pode ser vazio')
+    if not re.match(r'^[A-z0-9\.\-_]+$', value):
+        raise argparse.ArgumentTypeError('Nome inválido (somente letras, números, ., - e _)')
     if (len(value) > 30):
         raise argparse.ArgumentTypeError(
             'Nome muito grande (max 30 caracteres)')
