@@ -51,7 +51,7 @@ python client.py --server-ip 127.0.0.1 --server-port 5000 --name ted
 
 - Atender a requisição de um cliente para se conectar ao chat
 - Atender chamada de mensagem de grupo, enviando a mensagem para todos os clientes escolhidos
-- Enviar a lista atualizada ao usuário assim que ele requisitar por meio do comando list.
+- Enviar a lista atualizada ao usuário assim que ele requisitar por meio do comando list
 - Mostrar ao usuário qual o IP e porta do servidor para que os clientes se conectem
 - Não pode ter mais de um cliente com o mesmo nome
 
