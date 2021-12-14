@@ -48,7 +48,10 @@ class Client:
         self.port = self.sock.getsockname()[1]
 
     def start(self):
-        self.connect_to_server()
+        
+        connected = self.connect_to_server()
+        if connected == False:
+            return self.exit()
 
         self.list_commands()
 
@@ -88,6 +91,15 @@ class Client:
         self.server_sock.connect(addr)
         body = {'name': self.name, 'host': self.host, 'port': self.port}
         self.send_using_socket(self.server_sock, json.dumps(body))
+
+        as_bytes = self.server_sock.recv(1024)
+        as_string = as_bytes.decode('utf-8')
+
+        if(as_string == 'CONN - RFS'):
+            print(error('Nome ja existente, rejeitando conexao'))
+            return False
+        
+        return True
 
     def client_listen(self):
         self.sock.listen(MAX_CLIENTS)
@@ -227,7 +239,7 @@ def c(color, string):
 
 
 def error(string):
-    print(c(Fore.RED + Style.BRIGHT, string))
+    return c(Fore.RED + Style.BRIGHT, string)
 
 
 def name_arg(value):

@@ -37,12 +37,17 @@ class Server:
     def accept_connection(self, key):
         sock = key.fileobj
         conn, addr = sock.accept()
-        conn.setblocking(False)
 
         body = json.loads(conn.recv(1024).decode('utf-8'))
-
         name = body['name']
-        print(f'accepted connection from {addr} {name}')
+
+        if name in self.connected_clients:
+            #print('nome ja existente, rejeitando conexao')
+            conn.sendall('CONN - RFS'.encode('utf-8'))
+            return
+
+        #print(f'accepted connection from {addr} {name}')
+        conn.sendall('CONN - ACP'.encode('utf-8'))
 
         self.connected_clients[name] = {
             'host': body['host'],
@@ -50,13 +55,15 @@ class Server:
         }
 
         data = types.SimpleNamespace(
-            addr=addr,
-            name=name,
-            in_bytes=b'',
-            out_bytes=b'',
-        )
+                addr=addr,
+                name=name,
+                in_bytes=b'',
+                out_bytes=b'',
+            )
+
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
         sel.register(conn, events, data=data)
+        conn.setblocking(False)
 
     def service_connection(self, key, mask):
         if mask & selectors.EVENT_READ:
