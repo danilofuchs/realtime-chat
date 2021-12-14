@@ -45,14 +45,13 @@ python client.py --server-ip 127.0.0.1 --server-port 5000 --name ted
 - Enviar uma mensagem para um outro cliente específico sem intermédio do servidor, por sockets
 - Mostrar as mensagens recebida, data e nome dos remetentes
 - Cria um socket somente no momento em que precisar enviar mensagem para outro cliente
-- Desconecta o socket logo após enviar a mensagem (???)
+- Desconecta o socket logo após enviar a mensagem
 
 ### Servidor
 
 - Atender a requisição de um cliente para se conectar ao chat
-- Enviar lista de endereços de clientes para o cliente recém-conectado
 - Atender chamada de mensagem de grupo, enviando a mensagem para todos os clientes escolhidos
-- Notificar todos os clientes quando um cliente se conecta ou se desconecta, com a lista atualizada
+- Enviar a lista atualizada ao usuário assim que ele requisitar por meio do comando list.
 - Mostrar ao usuário qual o IP e porta do servidor para que os clientes se conectem
 - Não pode ter mais de um cliente com o mesmo nome
 
@@ -60,5 +59,4 @@ python client.py --server-ip 127.0.0.1 --server-port 5000 --name ted
 
 - Usando Python 3
 - Não vai ter interface gráfica (interação pelo terminal)
-- Cada cliente e servidor está em uma máquina separada (???)
-- Deve ter suporte para IPv4 e IPv6 (???)
+- Deve ter suporte para IPv4
